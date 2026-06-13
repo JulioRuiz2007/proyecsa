@@ -441,12 +441,12 @@ footer{background:var(--ink);color:#A9A9BC;padding:80px 0 0;overflow:hidden}
           <div class="c-line"><b>CIF</b><span>B97702559</span></div>
         </div>
       </div>
-      <form class="form fade" id="presupuesto" action="https://api.web3forms.com/submit" method="POST">
-        <!-- REVISAR: crear access_key gratis en web3forms.com y pegarla aquí para que lleguen los emails -->
-        <input type="hidden" name="access_key" value="REVISAR_WEB3FORMS_ACCESS_KEY">
-        <input type="hidden" name="subject" value="Nueva solicitud de presupuesto — proyecsa.es">
-        <input type="hidden" name="from_name" value="Web Proyecsa">
-        <input type="checkbox" name="botcheck" style="display:none" tabindex="-1" autocomplete="off">
+      <!-- FormSubmit: los presupuestos llegan directos a tomas.arce@proyecsa.es (sin backend ni cuenta de terceros). El action es el fallback sin-JS; el envío real va por AJAX abajo. -->
+      <form class="form fade" id="presupuesto" action="https://formsubmit.co/tomas.arce@proyecsa.es" method="POST">
+        <input type="hidden" name="_subject" value="Nueva solicitud de presupuesto — proyecsa.es">
+        <input type="hidden" name="_template" value="table">
+        <input type="hidden" name="_captcha" value="false">
+        <input type="text" name="_honey" style="display:none" tabindex="-1" autocomplete="off" aria-hidden="true">
         <div class="form-h">Solicitar presupuesto</div>
         <div class="form-s">Proyecto, pérgola, cubierta o retirada de amianto.</div>
         <label for="n">Nombre *</label>
@@ -458,6 +458,7 @@ footer{background:var(--ink);color:#A9A9BC;padding:80px 0 0;overflow:hidden}
         <label for="m">¿Qué necesitas?</label>
         <textarea id="m" name="mensaje" placeholder="Cuéntanos tu obra…"></textarea>
         <button class="btn solid-brand" type="submit">Enviar solicitud</button>
+        <p class="form-feedback" id="formFeedback" role="status" style="display:none;margin-top:14px;font-size:14px"></p>
         <p class="note">También puedes llamarnos directamente al 605 81 22 11.</p>
       </form>
     </div>
@@ -628,5 +629,35 @@ if(!reduce&&window.Lenis&&window.gsap&&window.ScrollTrigger){
 }
 })();
 </script>
+<script>
+  (function(){
+    var f=document.getElementById('presupuesto');if(!f)return;
+    var fb=document.getElementById('formFeedback');
+    f.addEventListener('submit',function(e){
+      e.preventDefault();
+      if(f._honey&&f._honey.value)return;                 // honeypot
+      if(!f.checkValidity()){f.reportValidity();return;}
+      var btn=f.querySelector('button[type=submit]'),orig=btn.textContent;
+      btn.disabled=true;btn.textContent='Enviando…';fb.style.display='none';
+      fetch('https://formsubmit.co/ajax/tomas.arce@proyecsa.es',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Accept':'application/json'},
+        body:JSON.stringify({
+          Nombre:f.nombre.value, email:f.email.value,
+          'Tel\u00e9fono':f.telefono.value||'\u2014', Mensaje:f.mensaje.value,
+          _subject:'Nueva solicitud de presupuesto \u2014 proyecsa.es', _template:'table'
+        })
+      }).then(function(r){return r.json();}).then(function(d){
+        if(d.success===true||d.success==='true'){
+          fb.textContent='\u00a1Gracias! Hemos recibido tu solicitud. Te respondemos lo antes posible.';
+          fb.style.color='var(--brand)';fb.style.display='';f.reset();
+        }else{throw new Error(d.message||'fail');}
+      }).catch(function(){
+        fb.innerHTML='No se pudo enviar. Escr\u00edbenos a <a href="mailto:tomas.arce@proyecsa.es">tomas.arce@proyecsa.es</a> o ll\u00e1manos al 605 81 22 11.';
+        fb.style.color='var(--accent)';fb.style.display='';
+      }).finally(function(){btn.disabled=false;btn.textContent=orig;});
+    });
+  })();
+  </script>
 </body>
 </html>
